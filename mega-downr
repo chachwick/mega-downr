@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# mega-downr: ultimate Mega.nz downloader for OMV or Linux servers
+# Supports: --screen, --verbose, --dry-run, --log, --quiet, --summary-only
+
+USE_SCREEN=0
+VERBOSE=0
+DRY_RUN=0
+QUIET=0
+SUMMARY_ONLY=0
+LOG_FILE=""
+
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -s|--screen) USE_SCREEN=1; shift ;;
+    -v|--verbose) VERBOSE=1; shift ;;
+    -d|--dry-run) DRY_RUN=1; shift ;;
+    --quiet) QUIET=1; shift ;;
+    --summary-only) SUMMARY_ONLY=1; shift ;;
+    --log) LOG_FILE="$2"; shift 2 ;;
+    -h|--help)
+      echo "Usage: mega-downr [options] <mega-link-or-remote-path> [local-dir]"
+      echo ""
+      echo "Options:"
+      echo "  -s | --screen       Run inside detached screen session"
+      echo "  -v | --verbose      Detailed per-file output"
+      echo "  -d | --dry-run      List contents without downloading"
+      echo "     | --quiet        Suppress normal output"
+      echo "     | --summary-only Print only summary totals"
+      echo "     | --log <file>   Log output to file"
+      exit 0 ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+SRC="$1"
+TARGET="$2"
+if [ -z "$SRC" ]; then
+  echo "❌ Usage: mega-downr [options] <mega-link-or-remote-path> [local-dir]"
+  exit 1
+fi
+[ -z "$TARGET" ] && TARGET="$(pwd)"
+mkdir -p "$TARGET"
+
+echo "📦 Source: $SRC"
+echo "📁 Destination: $TARGET"
+echo ""
+
+if [[ "$SRC" == https://mega.nz* ]]; then
+  echo "🔗 Detected a Mega.nz shared link."
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "⚠️  Dry-run is not supported for shared links via MEGAcmd."
+    echo "ℹ️  Try --verbose with a temp directory to preview."
+    echo "   Example: mega-downr -v \"$SRC\" /tmp/test"
+    exit 0
+  elif [ "$SUMMARY_ONLY" -eq 1 ]; then
+    echo "⚠️  Summary-only mode isn't meaningful for shared links without downloading."
+    echo "ℹ️  Try downloading normally and then inspecting the folder."
+    exit 0
+  else
+    CMD="mega-get \"$SRC\" \"$TARGET\""
+  fi
+else
+  echo "📂 Detected a path in your Mega.nz account."
+  if [ "$DRY_RUN" -eq 1 ]; then
+    CMD="mega-ls -R \"$SRC\""
+  else
+    CMD="mega-get \"$SRC\" \"$TARGET\""
+  fi
+fi
+
+[ "$VERBOSE" -eq 1 ] && CMD="$CMD --verbose"
+[ "$QUIET" -eq 1 ] && CMD="$CMD > /dev/null 2>&1"
+[ -n "$LOG_FILE" ] && CMD="$CMD | tee \"$LOG_FILE\""
+
+if [ "$USE_SCREEN" -eq 1 ]; then
+  echo "🖥 Running inside detached screen session 'mega-downr-job'..."
+  screen -dmS mega-downr-job bash -c "$CMD"
+  echo "✅ Started. Attach later with:"
+  echo "    screen -r mega-downr-job"
+  exit 0
+else
+  echo "🚀 Running now..."
+  eval $CMD
+fi
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  if [ "$SUMMARY_ONLY" -eq 1 ]; then
+    echo "----------------------------------------"
+    echo "Total files: $(find "$TARGET" -type f | wc -l)"
+    echo "Total size : $(du -sh "$TARGET" | cut -f1)"
+  else
+    echo ""
+    echo "✅ Download complete. Summary for $TARGET"
+    echo "----------------------------------------"
+    ls -lh "$TARGET"
+    echo ""
+    echo "Total files: $(find "$TARGET" -type f | wc -l)"
+    echo "Total size : $(du -sh "$TARGET" | cut -f1)"
+    echo "🚀 All done!"
+  fi
+else
+  echo ""
+  echo "✅ Dry run complete. Listed contents of $SRC."
+  echo "🚀 No files were downloaded."
+fi
+
