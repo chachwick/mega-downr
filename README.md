@@ -1,5 +1,8 @@
 # mega-downr
 
+ultimate Mega.nz downloader for OMV (OpenMediaVault) or other Linux servers
+=======
+
 **mega-downr** is a smart Bash script for downloading from Mega.nz on Linux or Unix-based servers. It was specifically created to make it easy to download files from the cloud directly onto a local NAS.It is especially helpful in downloading from shared links that will not be syncronized later. For example, large video files uploaded to Mega.nz by the PAs on a remote shoot can be downloaded to the NAS of the editing team so they can get working locally. 
 
  It wraps `megacmd` to support:
@@ -9,6 +12,7 @@
 - `--dry-run` to list contents without downloading (for your own Mega folders)
 - `--quiet` and `--summary-only` for minimal reports
 - `--log <file>` to keep a permanent record of your downloads
+- `--unzip` (`-u`) to automatically extract downloaded `.zip` or `.tar.gz/.tgz` archives with progress bars
 
 This script works on any Linux or Unix system, but was designed with OpenMediaVault (OMV) NAS systems in mind, often running on ProxMox or similar servers. After downloading, you can use `megacmd` tools to handle syncing or other transfers. 
 
@@ -121,3 +125,5 @@ PRs and issues welcome. Feel free to fork and improve!
 
 - Script by [Chadwick Self](https://github.com/chachwick)
 - Powered by [MEGAcmd](https://github.com/meganz/MEGAcmd)
+
+>>>>>>> Initial commit: add mega-downr script and README
